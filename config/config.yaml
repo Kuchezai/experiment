@@ -1,0 +1,6 @@
+http:
+  port: :80
+db:
+  pool-size: 3
+  conn-attempts: 3
+  conn-timeout: 3s
