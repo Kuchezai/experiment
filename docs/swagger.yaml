@@ -1,0 +1,237 @@
+openapi: "3.0.0"
+info:
+  title: experiment API
+  version: "0.0.1"
+servers:
+  - url: http://experiment.io/api/v1
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    slug:
+      type: object
+      properties:
+        name:
+          type: string
+    
+
+paths:
+  /registration:
+    post:
+      summary: Register a new user
+      tags:
+        - auth
+      requestBody:
+        description: User registration details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                pass:
+                  type: string
+              required:
+                - name
+                - surname
+      responses:
+        '201':
+          description: Created
+        '400':
+          description: Bad request - The name and pass are required as a string
+        '409':
+          description: Conflict - A user with this name already exists
+        '500':
+          description: Internal Server Error
+          
+  /login:
+    post:
+      summary: Log in to the system
+      tags:
+        - auth
+      requestBody:
+        description: User login credentials
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                pass:
+                  type: string
+              required:
+                - name
+                - surname
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '400':
+          description: Bad request- The name and pass are required as a string
+        '403':
+          description: Forbidden - Wron name or pass
+        '500':
+          description: Internal Server Error
+  /slugs:
+    post:
+      summary: Create new slug
+      tags:
+        - slugs
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+      responses:
+        '201':
+          description: Created
+        '401':
+          description: Unauthorized
+        '409':
+          description: Conflict - A slug with this name already exists
+        '500':
+          description: Internal Server Error
+  /slugs/autoassign:
+    post:
+      summary: Automatically assign users to slug
+      tags:
+        - slugs
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                auto_assign_percentage:
+                  type: integer
+                  minimum: 0
+                  maximum: 100
+                    
+      responses:
+        '201':
+          description: Created
+        '401':
+          description: Unauthorized
+        '409':
+          description: Conflict - A slug with this name already exists
+        '500':
+          description: Internal Server Error
+  /slugs/{name}:
+    delete:
+      summary: Delete slug
+      tags:
+        - slugs
+      parameters:
+        - name: name
+          in: path
+          required: true
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Deleted
+        '401':
+          description: Unauthorized
+        '404':
+          description: Not Found
+        '500':
+          description: Internal Server Error
+  /users/{user_id}/slugs:
+    get:
+      summary: Get user slugs
+      tags:
+        - users
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/slug"
+        '401':
+          description: Unauthorized
+        '404':
+          description: User not found
+        '500':
+          description: Internal Server Error
+    post:
+      summary: Update user slugs
+      tags:
+        - users
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                add_slugs:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      slug: 
+                        type: string
+                      ttl: 
+                        type: string
+                        format: data
+                remove_slugs:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request - One or more provided slugs are invalid or not found
+        '401':
+          description: Unauthorized
+        '404':
+          description: User not found
+        '500':
+          description: Internal Server Error
