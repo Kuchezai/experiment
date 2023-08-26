@@ -13,7 +13,7 @@ type Postgres struct {
 	connAttempts int
 	connTimeout  time.Duration
 
-	Pool *pgxpool.Pool
+	*pgxpool.Pool
 }
 
 const (
@@ -35,7 +35,7 @@ func New(url string, opts ...Option) (*Postgres, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%s, %w", op, err)
 	}
-	
+
 	for _, opt := range opts {
 		opt(pg)
 	}
