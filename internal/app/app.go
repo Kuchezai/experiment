@@ -2,21 +2,45 @@ package app
 
 import (
 	"fmt"
+	"log"
 	"net/url"
 
 	"experiment.io/config"
-	"experiment.io/pkg/storage/pg"
+	"experiment.io/internal/controller/http"
+	repo "experiment.io/internal/repo/pg"
+	"experiment.io/internal/usecase"
+	postgres "experiment.io/pkg/storage/pg"
+	"github.com/gin-gonic/gin"
 )
 
 func Run(cfg *config.Config) {
-	storage, err := pg.New(
+	// PostgreSQL
+	pg, err := postgres.New(
 		generateDBURL(&cfg.DB, "postgres"),
-		pg.MaxPoolSize(cfg.DB.PoolSize),
-		pg.ConnAttempts(cfg.DB.ConnAttempts),
-		pg.ConnTimeout(cfg.DB.ConnTimeout),
+		postgres.MaxPoolSize(cfg.DB.PoolSize),
+		postgres.ConnAttempts(cfg.DB.ConnAttempts),
+		postgres.ConnTimeout(cfg.DB.ConnTimeout),
 	)
+	if err != nil {
+		log.Fatal("unable to connect pg")
+	}
+	// Repository
+	segmentRepo := repo.NewSegmentRepository(pg)
 
-	fmt.Println(storage, err)
+	// Usecase
+	segmentUC := usecase.NewSegmentUsecase(segmentRepo)
+
+	// Create and start http server
+	g := gin.New()
+	http.SetupRouter(g, segmentUC)
+	srv, err := http.NewServer(g, cfg.HTTP)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err != srv.ListenAndServe() {
+		log.Fatal(err)
+	}
+
 }
 
 func generateDBURL(config *config.DB, scheme string) string {
