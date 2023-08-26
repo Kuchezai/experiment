@@ -8,19 +8,18 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func NewServer(cfg config.HTTP) (*http.Server, error) {
+func NewServer(g *gin.Engine, cfg config.HTTP) (*http.Server, error) {
+	g.Use(gin.Recovery())
+	g.Use(logger.LogsGinToJSON())
 
-	r := gin.New()
-	r.Use(gin.Recovery())
-	r.Use(logger.LogsGinToJSON())
-	r.GET("/ping", func(c *gin.Context) {
+	g.GET("/ping", func(c *gin.Context) {
 		c.JSON(200, gin.H{
 			"message": "pong",
 		})
 	})
 
 	srv := &http.Server{
-		Handler:      r,
+		Handler:      g,
 		IdleTimeout:  cfg.IdleTimeout,
 		ReadTimeout:  cfg.Timeout,
 		WriteTimeout: cfg.Timeout,
