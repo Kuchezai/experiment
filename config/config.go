@@ -13,7 +13,9 @@ type (
 		DB   DB   `yaml:"db"`
 	}
 	HTTP struct {
-		Port string `yaml:"port"`
+		Address     string        `yaml:"address"`
+		Timeout     time.Duration `yaml:"timeout"`
+		IdleTimeout time.Duration `yaml:"idle_timeout"`
 	}
 	DB struct {
 		Host         string        `env:"DB_HOST"`
