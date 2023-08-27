@@ -26,13 +26,15 @@ func Run(cfg *config.Config) {
 	}
 	// Repository
 	segmentRepo := repo.NewSegmentRepository(pg)
+	userRepo := repo.NewUserRepository(pg)
 
 	// Usecase
 	segmentUC := usecase.NewSegmentUsecase(segmentRepo)
+	userUC := usecase.NewUserUsecase(userRepo)
 
 	// Create and start http server
 	g := gin.New()
-	http.SetupRouter(g, segmentUC)
+	http.SetupRouter(g, segmentUC, userUC)
 	srv, err := http.NewServer(g, cfg.HTTP)
 	if err != nil {
 		log.Fatal(err)
