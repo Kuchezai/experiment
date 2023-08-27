@@ -4,6 +4,6 @@ CREATE TABLE IF NOT EXISTS segments (
 
 CREATE TABLE IF NOT EXISTS users (
     id SERIAL PRIMARY KEY,
-    name VARCHAR(100),
+    name VARCHAR(100) UNIQUE,
     encrypted_pwd VARCHAR(100)  
 );
