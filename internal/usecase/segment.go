@@ -1,6 +1,10 @@
 package usecase
 
-import "experiment.io/internal/entity"
+import (
+	"fmt"
+
+	"experiment.io/internal/entity"
+)
 
 type SegmentRepo interface {
 	NewSegment(seg entity.Segment) error
@@ -16,9 +20,17 @@ func NewSegmentUsecase(r SegmentRepo) *SegmentUsecase {
 }
 
 func (uc *SegmentUsecase) NewSegment(seg entity.Segment) error {
-	return uc.r.NewSegment(seg)
+	op := "usecase.segment.New"
+	if err := uc.r.NewSegment(seg); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
 }
 
 func (uc *SegmentUsecase) DeleteSegment(slug string) error {
-	return uc.r.DeleteSegment(slug)
+	op := "usecase.segment.Delete"
+	if err := uc.r.DeleteSegment(slug); err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	return nil
 }

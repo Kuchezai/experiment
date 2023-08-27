@@ -37,7 +37,7 @@ func Run(cfg *config.Config) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err != srv.ListenAndServe() {
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatal(err)
 	}
 
