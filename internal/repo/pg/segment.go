@@ -15,7 +15,7 @@ type SegmentRepository struct {
 }
 
 const (
-	ErrDuplicatePKCode = "23505"
+	DuplicatePKErrCode = "23505"
 )
 
 func NewSegmentRepository(db *pg.Postgres) *SegmentRepository {
@@ -33,7 +33,7 @@ func (r *SegmentRepository) NewSegment(seg entity.Segment) error {
 
 	if _, err := r.db.Exec(context.TODO(), query, seg.Slug); err != nil {
 		var pgErr *pgconn.PgError
-		if ok := errors.As(err, &pgErr); ok && pgErr.Code == ErrDuplicatePKCode {
+		if ok := errors.As(err, &pgErr); ok && pgErr.Code == DuplicatePKErrCode {
 			return fmt.Errorf("%s: %w", op, entity.ErrSegmentAlreadyExist)
 		}
 		return fmt.Errorf("%s: %w", op, err)
