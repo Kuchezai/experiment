@@ -9,6 +9,8 @@ import (
 	"experiment.io/internal/controller/http"
 	repo "experiment.io/internal/repo/pg"
 	"experiment.io/internal/usecase"
+	ginLogger "experiment.io/pkg/logger/gin-logger"
+	logger "experiment.io/pkg/logger"
 	postgres "experiment.io/pkg/storage/pg"
 	"github.com/gin-gonic/gin"
 )
@@ -33,8 +35,11 @@ func Run(cfg *config.Config) {
 	userUC := usecase.NewUserUsecase(userRepo)
 
 	// Create and start http server
+	l := logger.New()
 	g := gin.New()
-	http.SetupRouter(g, segmentUC, userUC)
+	g.Use(gin.Recovery())
+	g.Use(ginLogger.LoggingMiddleware(l))
+	http.SetupRouter(g, l, segmentUC, userUC)
 	srv, err := http.NewServer(g, cfg.HTTP)
 	if err != nil {
 		log.Fatal(err)

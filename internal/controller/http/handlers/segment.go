@@ -31,28 +31,31 @@ type requestNewSegment struct {
 func (h *segmentHandler) newSegment(c *gin.Context) {
 	var req requestNewSegment
 	if err := c.BindJSON(&req); err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		h.l.Error(err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"msg:": err.Error()})
 		return
 	}
 
 	if err := h.uc.NewSegment(entity.Segment{
 		Slug: req.Slug,
 	}); err != nil {
+		h.l.Error(err)
 		if errors.Is(err, entity.ErrSegmentAlreadyExist) {
-			c.AbortWithError(http.StatusConflict, err)
+			c.AbortWithStatusJSON(http.StatusConflict, gin.H{"msg:": entity.ErrSegmentAlreadyExist.Error()})
 			return
 		}
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	c.Status(http.StatusOK)
+	c.Status(http.StatusCreated)
 }
 
 func (h *segmentHandler) deleteSegment(c *gin.Context) {
 	slug := c.Param("slug")
 
 	if err := h.uc.DeleteSegment(slug); err != nil {
+		h.l.Error(err)
 		if errors.Is(err, entity.ErrSegmentNotFound) {
 			c.AbortWithStatus(http.StatusNotFound)
 			return

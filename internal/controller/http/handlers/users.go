@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -16,10 +15,11 @@ import (
 
 type userHandler struct {
 	uc *usecase.UserUsecase
+	l  *logger.Logger
 }
 
 func NewUserHandler(route *gin.RouterGroup, l *logger.Logger, uc *usecase.UserUsecase) {
-	h := &userHandler{uc}
+	h := &userHandler{uc, l}
 
 	{
 		route.POST("/users", h.newUser)
@@ -40,13 +40,15 @@ type responseNewUser struct {
 func (h *userHandler) newUser(c *gin.Context) {
 	var req requestNewUser
 	if err := c.BindJSON(&req); err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		h.l.Error(err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"msg:": err.Error()})
 		return
 	}
 
 	hashedPass, err := hasher.HashString(req.Pass)
 	if err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		h.l.Error(err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"msg:": err.Error()})
 		return
 	}
 
@@ -55,15 +57,16 @@ func (h *userHandler) newUser(c *gin.Context) {
 		Password: hashedPass,
 	})
 	if err != nil {
+		h.l.Error(err)
 		if errors.Is(err, entity.ErrUserAlreadyExist) {
-			c.AbortWithError(http.StatusConflict, err)
+			c.AbortWithStatusJSON(http.StatusConflict, gin.H{"msg:": entity.ErrUserAlreadyExist.Error()})
 			return
 		}
 		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 
-	c.JSON(http.StatusOK, responseNewUser{
+	c.JSON(http.StatusCreated, responseNewUser{
 		Id: id,
 	})
 }
@@ -82,13 +85,15 @@ func (h *userHandler) editUserSegments(c *gin.Context) {
 	userID := c.Param("user_id")
 	id, err := strconv.Atoi(userID)
 	if err != nil {
-		c.AbortWithError(http.StatusNotFound, err)
+		h.l.Error(err)
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 
 	var req requestEditUserSegments
 	if err := c.BindJSON(&req); err != nil {
-		c.AbortWithError(http.StatusBadRequest, err)
+		h.l.Error(err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"msg:": err.Error()})
 		return
 	}
 
@@ -98,17 +103,19 @@ func (h *userHandler) editUserSegments(c *gin.Context) {
 		added[i] = req.AddSegments[i].Slug
 	}
 	if isIntersect(added, req.RemoveSegments) {
-		c.AbortWithError(http.StatusBadRequest, entity.ErrSegmentsIntersect)
+		h.l.Error(err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"msg:": entity.ErrSegmentsIntersect.Error()})
 		return
 	}
 
 	if len(req.RemoveSegments) > 0 {
 		if err := h.uc.RemoveUserSegments(id, req.RemoveSegments); err != nil {
+			h.l.Error(err)
 			if errors.Is(err, entity.ErrUserToSegmentNotFound) {
-				c.AbortWithError(http.StatusNotFound, err)
+				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"msg:": entity.ErrUserToSegmentNotFound.Error()})
 				return
 			}
-			c.AbortWithError(http.StatusInternalServerError, err)
+			c.AbortWithStatus(http.StatusInternalServerError)
 			return
 		}
 	}
@@ -123,16 +130,21 @@ func (h *userHandler) editUserSegments(c *gin.Context) {
 
 	if len(added) > 0 {
 		if err := h.uc.AddUserSegments(id, addedSlugWithTTL); err != nil {
+			h.l.Error(err)
 			status := http.StatusInternalServerError
+			respErr := entity.ErrInternalServer
 			switch {
 			case errors.Is(err, entity.ErrUserNotFound):
 				status = http.StatusNotFound
+				respErr = entity.ErrUserNotFound
 			case errors.Is(err, entity.ErrSegmentNotFound):
 				status = http.StatusUnprocessableEntity
+				respErr = entity.ErrSegmentNotFound
 			case errors.Is(err, entity.ErrUserAlreadyAssigned):
 				status = http.StatusConflict
+				respErr = entity.ErrUserAlreadyAssigned
 			}
-			c.AbortWithError(status, err)
+			c.AbortWithStatusJSON(status, gin.H{"msg:": respErr.Error()})
 			return
 		}
 	}
@@ -150,18 +162,19 @@ func (h *userHandler) userSegments(c *gin.Context) {
 	userID := c.Param("user_id")
 	id, err := strconv.Atoi(userID)
 	if err != nil {
-		c.AbortWithError(http.StatusNotFound, err)
+		h.l.Error(err)
+		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
 
 	segments, err := h.uc.UserSegments(id)
 	if err != nil {
-		fmt.Println(err)
+		h.l.Error(err)
 		if errors.Is(err, entity.ErrUserNotFound) {
-			c.AbortWithError(http.StatusNotFound, err)
+			c.AbortWithStatus(http.StatusNotFound)
 			return
 		}
-		c.AbortWithError(http.StatusInternalServerError, err)
+		c.AbortWithStatus(http.StatusInternalServerError)
 		return
 	}
 

@@ -1,36 +1,29 @@
 package logger
 
 import (
-	"encoding/json"
-	"regexp"
-	"strings"
+	"time"
 
+	"experiment.io/pkg/logger"
 	"github.com/gin-gonic/gin"
+	"github.com/sirupsen/logrus"
 )
 
-// TODO: implement a normal logger, not the one built into gin
-func LogsGinToJSON() gin.HandlerFunc {
-	return gin.LoggerWithFormatter(
+func LoggingMiddleware(l *logger.Logger) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		startTime := time.Now()
+		ctx.Next()
+		endTime := time.Now()
+		fields := logrus.Fields{
+			"TIME":      startTime.Format(time.RFC3339Nano),
+			"LATENCY":   endTime.Sub(startTime).String(),
+			"METHOD":    ctx.Request.Method,
+			"URI":       ctx.Request.RequestURI,
+			"STATUS":    ctx.Writer.Status(),
+			"CLIENT_IP": ctx.ClientIP(),
+		}
 
-		func(params gin.LogFormatterParams) string {
-			log := make(map[string]interface{})
-			log["status_code"] = params.StatusCode
-			log["path"] = params.Path
-			log["method"] = params.Method
-			log["start_time"] = params.TimeStamp.Format("2006/01/02 - 15:04:05")
-			log["response_time"] = params.Latency.String()
+		l.WithLogrusFields(fields)
 
-			if params.StatusCode >= 400 {
-				errorMessage := params.ErrorMessage
-				re := regexp.MustCompile(`Error #[0-9]+: `)
-				errorMessage = strings.TrimRight(re.ReplaceAllString(errorMessage, ""), "\n")
-				log["error"] = errorMessage
-			}
-
-			s, _ := json.Marshal(log)
-			logLine := string(s) + "\n"
-
-			return logLine
-		},
-	)
+		ctx.Next()
+	}
 }
