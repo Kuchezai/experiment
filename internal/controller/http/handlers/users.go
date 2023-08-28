@@ -10,20 +10,21 @@ import (
 	"experiment.io/internal/entity"
 	"experiment.io/internal/usecase"
 	"experiment.io/pkg/hasher"
+	"experiment.io/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 
-type userRoutes struct {
+type userHandler struct {
 	uc *usecase.UserUsecase
 }
 
-func NewUserRoutes(handler *gin.RouterGroup, uc *usecase.UserUsecase) {
-	r := &userRoutes{uc}
+func NewUserHandler(route *gin.RouterGroup, l *logger.Logger, uc *usecase.UserUsecase) {
+	h := &userHandler{uc}
 
 	{
-		handler.POST("/users", r.newUser)
-		handler.PATCH("/users/:user_id/segments", r.editUserSegments)
-		handler.GET("/users/:user_id/segments", r.userSegments)
+		route.POST("/users", h.newUser)
+		route.PATCH("/users/:user_id/segments", h.editUserSegments)
+		route.GET("/users/:user_id/segments", h.userSegments)
 	}
 }
 
@@ -36,7 +37,7 @@ type responseNewUser struct {
 	Id int `json:"id"`
 }
 
-func (r *userRoutes) newUser(c *gin.Context) {
+func (h *userHandler) newUser(c *gin.Context) {
 	var req requestNewUser
 	if err := c.BindJSON(&req); err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
@@ -49,7 +50,7 @@ func (r *userRoutes) newUser(c *gin.Context) {
 		return
 	}
 
-	id, err := r.uc.NewUser(entity.User{
+	id, err := h.uc.NewUser(entity.User{
 		Name:     req.Name,
 		Password: hashedPass,
 	})
@@ -77,7 +78,7 @@ type requestEditUserSegments struct {
 	RemoveSegments []string `json:"remove_segments" binding:"max=100"`
 }
 
-func (r *userRoutes) editUserSegments(c *gin.Context) {
+func (h *userHandler) editUserSegments(c *gin.Context) {
 	userID := c.Param("user_id")
 	id, err := strconv.Atoi(userID)
 	if err != nil {
@@ -102,7 +103,7 @@ func (r *userRoutes) editUserSegments(c *gin.Context) {
 	}
 
 	if len(req.RemoveSegments) > 0 {
-		if err := r.uc.RemoveUserSegments(id, req.RemoveSegments); err != nil {
+		if err := h.uc.RemoveUserSegments(id, req.RemoveSegments); err != nil {
 			if errors.Is(err, entity.ErrUserToSegmentNotFound) {
 				c.AbortWithError(http.StatusNotFound, err)
 				return
@@ -121,7 +122,7 @@ func (r *userRoutes) editUserSegments(c *gin.Context) {
 	}
 
 	if len(added) > 0 {
-		if err := r.uc.AddUserSegments(id, addedSlugWithTTL); err != nil {
+		if err := h.uc.AddUserSegments(id, addedSlugWithTTL); err != nil {
 			status := http.StatusInternalServerError
 			switch {
 			case errors.Is(err, entity.ErrUserNotFound):
@@ -145,7 +146,7 @@ type responseUserSegments struct {
 	ExpiredDate time.Time `json:"expired_date"`
 }
 
-func (r *userRoutes) userSegments(c *gin.Context) {
+func (h *userHandler) userSegments(c *gin.Context) {
 	userID := c.Param("user_id")
 	id, err := strconv.Atoi(userID)
 	if err != nil {
@@ -153,7 +154,7 @@ func (r *userRoutes) userSegments(c *gin.Context) {
 		return
 	}
 
-	segments, err := r.uc.UserSegments(id)
+	segments, err := h.uc.UserSegments(id)
 	if err != nil {
 		fmt.Println(err)
 		if errors.Is(err, entity.ErrUserNotFound) {

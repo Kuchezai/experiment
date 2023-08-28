@@ -6,20 +6,21 @@ import (
 
 	"experiment.io/internal/entity"
 	"experiment.io/internal/usecase"
+	"experiment.io/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 
-type segmentRoutes struct {
+type segmentHandler struct {
 	uc *usecase.SegmentUsecase
+	l  *logger.Logger
 }
 
-func NewSegmentRoutes(handler *gin.RouterGroup, uc *usecase.SegmentUsecase) {
-	r := &segmentRoutes{uc}
+func NewSegmentHandler(route *gin.RouterGroup, l *logger.Logger, uc *usecase.SegmentUsecase) {
+	h := &segmentHandler{uc, l}
 
 	{
-		handler.GET("/segments/:slug", r.segmentBySlug)
-		handler.DELETE("/segments/:slug", r.deleteSegment)
-		handler.POST("/segments", r.newSegment)
+		route.DELETE("/segments/:slug", h.deleteSegment)
+		route.POST("/segments", h.newSegment)
 	}
 }
 
@@ -27,13 +28,14 @@ type requestNewSegment struct {
 	Slug string `json:"slug" binding:"required,max=100"`
 }
 
-func (r *segmentRoutes) newSegment(c *gin.Context) {
+func (h *segmentHandler) newSegment(c *gin.Context) {
 	var req requestNewSegment
 	if err := c.BindJSON(&req); err != nil {
 		c.AbortWithError(http.StatusBadRequest, err)
+		return
 	}
 
-	if err := r.uc.NewSegment(entity.Segment{
+	if err := h.uc.NewSegment(entity.Segment{
 		Slug: req.Slug,
 	}); err != nil {
 		if errors.Is(err, entity.ErrSegmentAlreadyExist) {
@@ -47,10 +49,10 @@ func (r *segmentRoutes) newSegment(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (r *segmentRoutes) deleteSegment(c *gin.Context) {
+func (h *segmentHandler) deleteSegment(c *gin.Context) {
 	slug := c.Param("slug")
 
-	if err := r.uc.DeleteSegment(slug); err != nil {
+	if err := h.uc.DeleteSegment(slug); err != nil {
 		if errors.Is(err, entity.ErrSegmentNotFound) {
 			c.AbortWithStatus(http.StatusNotFound)
 			return
@@ -62,6 +64,6 @@ func (r *segmentRoutes) deleteSegment(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (r *segmentRoutes) segmentBySlug(c *gin.Context) {
+func (h *segmentHandler) segmentBySlug(c *gin.Context) {
 
 }
