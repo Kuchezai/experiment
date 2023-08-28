@@ -73,6 +73,7 @@ require (
 	github.com/jackc/pgservicefile v0.0.0-20221227161230-091c0ba34f0a // indirect
 	github.com/jackc/pgx v3.6.2+incompatible
 	github.com/jackc/puddle/v2 v2.2.1 // indirect
+	github.com/lib/pq v1.10.9
 	github.com/pashagolub/pgxmock/v2 v2.11.0
 	github.com/proullon/ramsql v0.1.2
 	github.com/stretchr/testify v1.8.4
