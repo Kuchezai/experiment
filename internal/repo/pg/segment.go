@@ -14,9 +14,6 @@ type SegmentRepository struct {
 	db *pg.Postgres
 }
 
-const (
-	DuplicatePKErrCode = "23505"
-)
 
 func NewSegmentRepository(db *pg.Postgres) *SegmentRepository {
 	return &SegmentRepository{db}
