@@ -7,6 +7,7 @@ var (
 	ErrInternalServer        = errors.New("internal server error")
 	ErrSegmentNotFound       = errors.New("segment not found")
 	ErrUserAlreadyExist      = errors.New("user already exist")
+	ErrInvalidAddedSegment   = errors.New("add_segments: ttl must be less or equal 366, greater or equal 0. slug must be provided")
 	ErrSegmentAlreadyExist   = errors.New("segment already exist")
 	ErrSegmentsIntersect     = errors.New("added and removed segments intersect")
 	ErrUserAlreadyAssigned   = errors.New("the user is already assigned this segment")
