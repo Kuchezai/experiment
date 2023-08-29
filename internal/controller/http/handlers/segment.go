@@ -5,17 +5,20 @@ import (
 	"net/http"
 
 	"experiment.io/internal/entity"
-	"experiment.io/internal/usecase"
 	"experiment.io/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 
 type segmentHandler struct {
-	uc *usecase.SegmentUsecase
+	uc SegmentUsecase
 	l  *logger.Logger
 }
+type SegmentUsecase interface {
+	NewSegment(seg entity.Segment) error
+	DeleteSegment(slug string) error
+}
 
-func NewSegmentHandler(route *gin.RouterGroup, l *logger.Logger, uc *usecase.SegmentUsecase) {
+func NewSegmentHandler(route *gin.RouterGroup, l *logger.Logger, uc SegmentUsecase) {
 	h := &segmentHandler{uc, l}
 
 	{

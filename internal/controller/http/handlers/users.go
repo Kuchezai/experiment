@@ -7,18 +7,24 @@ import (
 	"time"
 
 	"experiment.io/internal/entity"
-	"experiment.io/internal/usecase"
 	"experiment.io/pkg/hasher"
 	"experiment.io/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
 
 type userHandler struct {
-	uc *usecase.UserUsecase
+	uc UserUsecase
 	l  *logger.Logger
 }
 
-func NewUserHandler(route *gin.RouterGroup, l *logger.Logger, uc *usecase.UserUsecase) {
+type UserUsecase interface {
+	NewUser(user entity.User) (int, error)
+	UserSegments(userID int) ([]entity.SlugWithExpiredDate, error)
+	AddUserSegments(userID int, added []entity.SlugWithExpiredDate) error
+	RemoveUserSegments(userID int, removed []string) error
+}
+
+func NewUserHandler(route *gin.RouterGroup, l *logger.Logger, uc UserUsecase) {
 	h := &userHandler{uc, l}
 
 	{
@@ -73,12 +79,13 @@ func (h *userHandler) newUser(c *gin.Context) {
 
 // added segments will be ignored after ttl expires
 type requestEditUserSegments struct {
-	AddSegments []struct {
-		Slug string `json:"slug" binding:"required,max=100"`
-		TTL  int    `json:"ttl" binding:"max=100"`
-	} `json:"add_segments" binding:"max=100"`
+	AddSegments    []AddSegments `json:"add_segments" binding:"required,max=100"`
+	RemoveSegments []string      `json:"remove_segments" binding:"max=100"`
+}
 
-	RemoveSegments []string `json:"remove_segments" binding:"max=100"`
+type AddSegments struct {
+	Slug string `json:"slug" binding:"required,max=100"`
+	TTL  int    `json:"ttl" binding:"min=0,max=100"`
 }
 
 func (h *userHandler) editUserSegments(c *gin.Context) {
@@ -97,12 +104,18 @@ func (h *userHandler) editUserSegments(c *gin.Context) {
 		return
 	}
 
+	validator := NewValidator()
+	if !validator.checkAddedSegmentsIsValid(req.AddSegments) {
+		h.l.Error(entity.ErrInvalidAddedSegment)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"msg:": entity.ErrInvalidAddedSegment.Error()})
+		return
+	}
 	// check whether added and removed segments intersect
 	added := make([]string, len(req.AddSegments))
 	for i := range req.AddSegments {
 		added[i] = req.AddSegments[i].Slug
 	}
-	if isIntersect(added, req.RemoveSegments) {
+	if validator.IsIntersect(added, req.RemoveSegments) {
 		h.l.Error(err)
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"msg:": entity.ErrSegmentsIntersect.Error()})
 		return
@@ -186,18 +199,4 @@ func (h *userHandler) userSegments(c *gin.Context) {
 
 	c.JSON(http.StatusOK, resp)
 
-}
-
-func isIntersect(a, b []string) bool {
-	m := make(map[string]struct{})
-	for _, el := range a {
-		m[el] = struct{}{}
-	}
-
-	for _, el := range b {
-		if _, ok := m[el]; ok {
-			return true
-		}
-	}
-	return false
 }
