@@ -26,7 +26,7 @@ type UserUsecase interface {
 func NewUserHandler(route *gin.RouterGroup, l *logger.Logger, uc UserUsecase) {
 	h := &userHandler{uc, l}
 	{
-		route.GET("/users/segments/history", h.usersHistoryInCSVByDate)
+		route.POST("/users/segments/history", h.createUsersHistoryInCSVByDate)
 		route.PATCH("/users/:user_id/segments", h.editUserSegments)
 		route.GET("/users/:user_id/segments", h.userSegments)
 	}
@@ -158,18 +158,18 @@ func (h *userHandler) userSegments(c *gin.Context) {
 }
 
 type requestHistoryInCSVByDate struct {
-	Year  int `form:"year" binding:"required,numeric,min=2007,max=2100"`
-	Month int `form:"month" binding:"required,numeric,min=1,max=12"`
+	Year  int `json:"year" binding:"required,numeric,min=2007,max=2100"`
+	Month int `json:"month" binding:"required,numeric,min=1,max=12"`
 }
 
 type responseHistoryInCSVByDate struct {
 	Link string `json:"link"`
 }
 
-func (h *userHandler) usersHistoryInCSVByDate(c *gin.Context) {
+func (h *userHandler) createUsersHistoryInCSVByDate(c *gin.Context) {
 
 	var req requestHistoryInCSVByDate
-	if err := c.ShouldBindQuery(&req); err != nil {
+	if err := c.ShouldBindJSON(&req); err != nil {
 		h.l.Error(err)
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"msg:": err.Error()})
 		return
