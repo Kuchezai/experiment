@@ -8,6 +8,7 @@ import (
 
 type SegmentRepo interface {
 	NewSegment(seg entity.Segment) error
+	NewSegmentWithAutoAssign(seg entity.Segment, percentAssigned int) ([]int, error)
 	DeleteSegment(slug string) error
 }
 
@@ -25,6 +26,16 @@ func (uc *SegmentUsecase) NewSegment(seg entity.Segment) error {
 		return fmt.Errorf("%s: %w", op, err)
 	}
 	return nil
+}
+
+// Creates a segment and returns the user IDs assigned to it
+func (uc *SegmentUsecase) NewSegmentWithAutoAssign(seg entity.Segment, percentAssigned int) ([]int, error) {
+	op := "usecase.segment.NewWithAutoAssign"
+	ids, err := uc.r.NewSegmentWithAutoAssign(seg, percentAssigned)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	return ids, nil
 }
 
 func (uc *SegmentUsecase) DeleteSegment(slug string) error {

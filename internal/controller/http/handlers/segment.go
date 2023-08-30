@@ -15,6 +15,7 @@ type segmentHandler struct {
 }
 type SegmentUsecase interface {
 	NewSegment(seg entity.Segment) error
+	NewSegmentWithAutoAssign(seg entity.Segment, percentAssigned int) ([]int, error)
 	DeleteSegment(slug string) error
 }
 
@@ -24,6 +25,7 @@ func NewSegmentHandler(route *gin.RouterGroup, l *logger.Logger, uc SegmentUseca
 	{
 		route.DELETE("/segments/:slug", h.deleteSegment)
 		route.POST("/segments", h.newSegment)
+		route.POST("/segments/autoassign", h.newSegmentWithAutoAssign)
 	}
 }
 
@@ -70,6 +72,35 @@ func (h *segmentHandler) deleteSegment(c *gin.Context) {
 	c.Status(http.StatusOK)
 }
 
-func (h *segmentHandler) segmentBySlug(c *gin.Context) {
+type requestNewSegmentWithAutoAssign struct {
+	Slug    string `json:"slug" binding:"required,max=100"`
+	Percent int    `json:"percent" binding:"required,numeric,min=0,max=100"`
+}
+type responseNewSegmentWithAutoAssign struct {
+	IDS []int `json:"ids"`
+}
 
+func (h *segmentHandler) newSegmentWithAutoAssign(c *gin.Context) {
+	var req requestNewSegmentWithAutoAssign
+	if err := c.BindJSON(&req); err != nil {
+		h.l.Error(err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"msg:": err.Error()})
+		return
+	}
+	ids, err := h.uc.NewSegmentWithAutoAssign(entity.Segment{
+		Slug: req.Slug,
+	}, req.Percent)
+	if err != nil {
+		h.l.Error(err)
+		if errors.Is(err, entity.ErrSegmentAlreadyExist) {
+			c.AbortWithStatusJSON(http.StatusConflict, gin.H{"msg:": entity.ErrSegmentAlreadyExist.Error()})
+			return
+		}
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusCreated, responseNewSegmentWithAutoAssign{
+		IDS: ids,
+	})
 }
