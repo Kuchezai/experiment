@@ -41,6 +41,32 @@ func (_m *SegmentUsecase) NewSegment(seg entity.Segment) error {
 	return r0
 }
 
+// NewSegmentWithAutoAssign provides a mock function with given fields: seg, percentAssigned
+func (_m *SegmentUsecase) NewSegmentWithAutoAssign(seg entity.Segment, percentAssigned int) ([]int, error) {
+	ret := _m.Called(seg, percentAssigned)
+
+	var r0 []int
+	var r1 error
+	if rf, ok := ret.Get(0).(func(entity.Segment, int) ([]int, error)); ok {
+		return rf(seg, percentAssigned)
+	}
+	if rf, ok := ret.Get(0).(func(entity.Segment, int) []int); ok {
+		r0 = rf(seg, percentAssigned)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).([]int)
+		}
+	}
+
+	if rf, ok := ret.Get(1).(func(entity.Segment, int) error); ok {
+		r1 = rf(seg, percentAssigned)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
 // NewSegmentUsecase creates a new instance of SegmentUsecase. It also registers a testing interface on the mock and a cleanup function to assert the mocks expectations.
 // The first argument is typically a *testing.T value.
 func NewSegmentUsecase(t interface {

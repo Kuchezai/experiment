@@ -27,30 +27,6 @@ func (_m *UserUsecase) AddUserSegments(userID int, added []entity.SlugWithExpire
 	return r0
 }
 
-// NewUser provides a mock function with given fields: user
-func (_m *UserUsecase) NewUser(user entity.User) (int, error) {
-	ret := _m.Called(user)
-
-	var r0 int
-	var r1 error
-	if rf, ok := ret.Get(0).(func(entity.User) (int, error)); ok {
-		return rf(user)
-	}
-	if rf, ok := ret.Get(0).(func(entity.User) int); ok {
-		r0 = rf(user)
-	} else {
-		r0 = ret.Get(0).(int)
-	}
-
-	if rf, ok := ret.Get(1).(func(entity.User) error); ok {
-		r1 = rf(user)
-	} else {
-		r1 = ret.Error(1)
-	}
-
-	return r0, r1
-}
-
 // RemoveUserSegments provides a mock function with given fields: userID, removed
 func (_m *UserUsecase) RemoveUserSegments(userID int, removed []string) error {
 	ret := _m.Called(userID, removed)
@@ -84,6 +60,30 @@ func (_m *UserUsecase) UserSegments(userID int) ([]entity.SlugWithExpiredDate, e
 
 	if rf, ok := ret.Get(1).(func(int) error); ok {
 		r1 = rf(userID)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// UsersHistoryInCSVByDate provides a mock function with given fields: year, month
+func (_m *UserUsecase) UsersHistoryInCSVByDate(year int, month int) (string, error) {
+	ret := _m.Called(year, month)
+
+	var r0 string
+	var r1 error
+	if rf, ok := ret.Get(0).(func(int, int) (string, error)); ok {
+		return rf(year, month)
+	}
+	if rf, ok := ret.Get(0).(func(int, int) string); ok {
+		r0 = rf(year, month)
+	} else {
+		r0 = ret.Get(0).(string)
+	}
+
+	if rf, ok := ret.Get(1).(func(int, int) error); ok {
+		r1 = rf(year, month)
 	} else {
 		r1 = ret.Error(1)
 	}

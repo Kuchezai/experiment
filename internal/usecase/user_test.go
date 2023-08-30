@@ -9,55 +9,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewUser(t *testing.T) {
-	r := new(mocks.UserRepo)
-	uc := NewUserUsecase(r)
 
-	testCase := []struct {
-		name        string
-		user        entity.User
-		repoVal     int
-		repoErr     error
-		expectedVal int
-		expectedErr error
-	}{
-		{
-			name: "Uniq slug",
-			user: entity.User{
-				Name:     "name",
-				Password: "pass",
-			},
-			repoVal:     1,
-			repoErr:     nil,
-			expectedVal: 1,
-			expectedErr: nil,
-		},
-		{
-			name: "Duplicate slug",
-			user: entity.User{
-				Name:     "name",
-				Password: "pass",
-			},
-			repoVal:     0,
-			repoErr:     entity.ErrUserAlreadyExist,
-			expectedVal: 0,
-			expectedErr: entity.ErrUserAlreadyExist,
-		},
-	}
-
-	for _, tc := range testCase {
-		t.Run(tc.name, func(t *testing.T) {
-			mockCall := r.On("NewUser", tc.user).Return(tc.repoVal, tc.expectedErr)
-
-			actual, err := uc.NewUser(tc.user)
-			require.ErrorIs(t, err, tc.expectedErr)
-			require.Equal(t, actual, tc.expectedVal)
-
-			mockCall.Unset()
-		})
-	}
-
-}
 
 func TestRemoveUserSegments(t *testing.T) {
 	r := new(mocks.UserRepo)
@@ -175,20 +127,19 @@ func TestAddUserSegments(t *testing.T) {
 	}
 }
 
-
 func TestUserSegments(t *testing.T) {
 	r := new(mocks.UserRepo)
 	uc := NewUserUsecase(r)
 
 	testCase := []struct {
-		name        string
-		userID      int
+		name         string
+		userID       int
 		repoSegments []entity.SlugWithExpiredDate
-		repoErr     error
-		expectedErr error
+		repoErr      error
+		expectedErr  error
 	}{
 		{
-			name: "Get segments for existent user",
+			name:   "Get segments for existent user",
 			userID: 1,
 			repoSegments: []entity.SlugWithExpiredDate{
 				{Slug: "Segment1", ExpiredDate: time.Now().Add(time.Hour)},
@@ -198,11 +149,11 @@ func TestUserSegments(t *testing.T) {
 			expectedErr: nil,
 		},
 		{
-			name: "Get segments for non-existent user",
-			userID: 0,
+			name:         "Get segments for non-existent user",
+			userID:       0,
 			repoSegments: nil,
-			repoErr:     entity.ErrUserNotFound,
-			expectedErr: entity.ErrUserNotFound,
+			repoErr:      entity.ErrUserNotFound,
+			expectedErr:  entity.ErrUserNotFound,
 		},
 	}
 
