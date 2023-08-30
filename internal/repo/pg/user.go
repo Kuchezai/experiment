@@ -2,8 +2,11 @@ package pg
 
 import (
 	"context"
+	"encoding/csv"
 	"errors"
 	"fmt"
+	"os"
+	"strconv"
 	"time"
 
 	"experiment.io/internal/entity"
@@ -15,11 +18,18 @@ import (
 var MaxTime = time.Date(9999, time.December, 31, 23, 59, 59, 999999999, time.UTC)
 
 type UserRepository struct {
-	db *pg.Postgres
+	db            *pg.Postgres
+	dirToStoreCSV string
 }
 
-func NewUserRepository(db *pg.Postgres) *UserRepository {
-	return &UserRepository{db}
+func NewUserRepository(db *pg.Postgres, dirToStoreCSV string) (*UserRepository, error) {
+	if _, err := os.Stat(dirToStoreCSV); errors.Is(err, os.ErrNotExist) {
+		err := os.Mkdir(dirToStoreCSV, os.ModePerm)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &UserRepository{db, dirToStoreCSV}, nil
 }
 
 func (r *UserRepository) NewUser(u entity.User) (int, error) {
@@ -64,8 +74,7 @@ func (r *UserRepository) AddUserSegments(userID int, added []entity.SlugWithExpi
 	`
 	for _, segmentToAdd := range added {
 		if _, err := tx.Exec(context.TODO(), query, segmentToAdd.Slug, userID, segmentToAdd.ExpiredDate); err != nil {
-			fmt.Println(err)
-			return r.checkUserToSegmentErr(op, err)
+			return r.checkUserToSegmentError(op, err)
 		}
 	}
 
@@ -118,10 +127,10 @@ func (r *UserRepository) UserSegments(userID int) ([]entity.SlugWithExpiredDate,
 	`
 
 	rows, err := r.db.Query(context.TODO(), query, userID)
-	defer rows.Close()
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", op, err)
 	}
+	defer rows.Close()
 
 	var segments []entity.SlugWithExpiredDate
 	for rows.Next() {
@@ -147,7 +156,72 @@ func (r *UserRepository) UserSegments(userID int) ([]entity.SlugWithExpiredDate,
 
 }
 
-func (r *UserRepository) checkUserToSegmentErr(op string, err error) error {
+func (r *UserRepository) UsersHistoryInByDate(year int, month int) ([]entity.UserSegmentsHistory, error) {
+	op := "repo.pg.user.UsersSegmentsHistoryByDate"
+
+	firstDay := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
+	lastDay := firstDay.AddDate(0, 1, 0)
+
+	query := `
+	SELECT operation_id, user_id, segment_slug, isAdded, operation_date
+	FROM segment_user_operations
+	WHERE operation_date >= $1 AND operation_date <= $2
+	`
+
+	rows, err := r.db.Query(context.TODO(), query, firstDay, lastDay)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+	defer rows.Close()
+
+	var history []entity.UserSegmentsHistory
+	for rows.Next() {
+		var hist entity.UserSegmentsHistory
+
+		if err := rows.Scan(
+			&hist.OperationID,
+			&hist.UserID,
+			&hist.SegmentSlug,
+			&hist.IsAdded,
+			&hist.Date,
+		); err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+
+		history = append(history, hist)
+	}
+
+	return history, nil
+}
+
+func (r *UserRepository) WriteHistoryToCSV(history []entity.UserSegmentsHistory, year int, month int) (string, error) {
+	op := "usecase.user.UserSegmentsHistory"
+	filePath := fmt.Sprintf("%s/user_segments_history-%d-%d.csv", r.dirToStoreCSV, year, month)
+	file, err := os.Create(filePath)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", op, err)
+
+	}
+	defer file.Close()
+
+	writer := csv.NewWriter(file)
+	defer writer.Flush()
+
+	header := []string{"operation_id", "user_id", "segment_slug", "is_added", "date"}
+	writer.Write(header)
+
+	var rows [][]string
+	for _, h := range history {
+		row := []string{strconv.Itoa(h.OperationID), strconv.Itoa(h.UserID), h.SegmentSlug, strconv.FormatBool(h.IsAdded), h.Date.Format(time.RFC3339)}
+		rows = append(rows, row)
+	}
+	fmt.Println(rows)
+	writer.WriteAll(rows)
+
+	return filePath, nil
+}
+
+func (r *UserRepository) checkUserToSegmentError(op string, err error) error {
 	var pgErr *pgconn.PgError
 	errors.As(err, &pgErr)
 	switch {

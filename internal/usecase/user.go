@@ -11,6 +11,8 @@ type UserRepo interface {
 	UserSegments(userID int) ([]entity.SlugWithExpiredDate, error)
 	AddUserSegments(userID int, added []entity.SlugWithExpiredDate) error
 	RemoveUserSegments(userID int, removed []string) error
+	UsersHistoryInByDate(year int, month int) ([]entity.UserSegmentsHistory, error)
+	WriteHistoryToCSV(history []entity.UserSegmentsHistory, year int, month int) (string, error)
 }
 
 type UserUsecase struct {
@@ -61,4 +63,19 @@ func (uc *UserUsecase) UserSegments(userID int) ([]entity.SlugWithExpiredDate, e
 	}
 
 	return segments, nil
+}
+
+func (uc *UserUsecase) UsersHistoryInCSVByDate(year int, month int) (string, error) {
+	op := "usecase.user.UserSegmentsHistoryByDate"
+
+	history, err := uc.r.UsersHistoryInByDate(year, month)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
+
+	pathToCSV, err := uc.r.WriteHistoryToCSV(history, year, month)
+	if err != nil {
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
+	return pathToCSV, nil
 }

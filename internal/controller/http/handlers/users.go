@@ -22,6 +22,7 @@ type UserUsecase interface {
 	UserSegments(userID int) ([]entity.SlugWithExpiredDate, error)
 	AddUserSegments(userID int, added []entity.SlugWithExpiredDate) error
 	RemoveUserSegments(userID int, removed []string) error
+	UsersHistoryInCSVByDate(year int, month int) (string, error)
 }
 
 func NewUserHandler(route *gin.RouterGroup, l *logger.Logger, uc UserUsecase) {
@@ -29,6 +30,7 @@ func NewUserHandler(route *gin.RouterGroup, l *logger.Logger, uc UserUsecase) {
 
 	{
 		route.POST("/users", h.newUser)
+		route.GET("/users/segments/history", h.usersHistoryInCSVByDate)
 		route.PATCH("/users/:user_id/segments", h.editUserSegments)
 		route.GET("/users/:user_id/segments", h.userSegments)
 	}
@@ -40,7 +42,7 @@ type requestNewUser struct {
 }
 
 type responseNewUser struct {
-	Id int `json:"id"`
+	ID int `json:"id"`
 }
 
 func (h *userHandler) newUser(c *gin.Context) {
@@ -73,13 +75,13 @@ func (h *userHandler) newUser(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, responseNewUser{
-		Id: id,
+		ID: id,
 	})
 }
 
 // added segments will be ignored after ttl expires
 type requestEditUserSegments struct {
-	AddSegments    []AddSegments `json:"add_segments" binding:"required,max=100"`
+	AddSegments    []AddSegments `json:"add_segments" binding:"max=100"`
 	RemoveSegments []string      `json:"remove_segments" binding:"max=100"`
 }
 
@@ -198,5 +200,36 @@ func (h *userHandler) userSegments(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, resp)
+
+}
+
+type requestHistoryInCSVByDate struct {
+	Year  int `form:"year" binding:"required,numeric,min=2007,max=2100"`
+	Month int `form:"month" binding:"required,numeric,min=1,max=12"`
+}
+
+type responseHistoryInCSVByDate struct {
+	Link string `json:"link"`
+}
+
+func (h *userHandler) usersHistoryInCSVByDate(c *gin.Context) {
+
+	var req requestHistoryInCSVByDate
+	if err := c.ShouldBindQuery(&req); err != nil {
+		h.l.Error(err)
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"msg:": err.Error()})
+		return
+	}
+
+	path, err := h.uc.UsersHistoryInCSVByDate(req.Year, req.Month)
+	if err != nil {
+		h.l.Error(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	c.JSON(http.StatusCreated, responseHistoryInCSVByDate{
+		Link: path,
+	})
 
 }

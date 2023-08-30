@@ -14,4 +14,6 @@ func SetupRouter(g *gin.Engine, l *logger.Logger, segmentUC *usecase.SegmentUsec
 		handlers.NewSegmentHandler(router, l, segmentUC)
 		handlers.NewUserHandler(router, l, userUC)
 	}
+
+	g.Static("/history", "history")
 }

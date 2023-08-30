@@ -9,8 +9,8 @@ import (
 	"experiment.io/internal/controller/http"
 	repo "experiment.io/internal/repo/pg"
 	"experiment.io/internal/usecase"
-	ginLogger "experiment.io/pkg/logger/gin-logger"
 	logger "experiment.io/pkg/logger"
+	ginLogger "experiment.io/pkg/logger/gin-logger"
 	postgres "experiment.io/pkg/storage/pg"
 	"github.com/gin-gonic/gin"
 )
@@ -26,9 +26,13 @@ func Run(cfg *config.Config) {
 	if err != nil {
 		log.Fatal("unable to connect pg")
 	}
+	dirToStorageCSV := "./history"
 	// Repository
 	segmentRepo := repo.NewSegmentRepository(pg)
-	userRepo := repo.NewUserRepository(pg)
+	userRepo, err := repo.NewUserRepository(pg, dirToStorageCSV)
+	if err != nil {
+		log.Fatal("unable to create user repository")
+	}
 
 	// Usecase
 	segmentUC := usecase.NewSegmentUsecase(segmentRepo)
