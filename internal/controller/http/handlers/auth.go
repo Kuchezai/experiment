@@ -100,7 +100,7 @@ func (h *authHandler) login(c *gin.Context) {
 		}
 	}
 
-	c.JSON(http.StatusCreated, responseLogin{
+	c.JSON(http.StatusOK, responseLogin{
 		Token: token,
 	})
 }
