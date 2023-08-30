@@ -67,6 +67,7 @@ require (
 
 require (
 	github.com/gin-gonic/gin v1.9.1
+	github.com/golang-jwt/jwt v3.2.2+incompatible
 	github.com/ilyakaznacheev/cleanenv v1.5.0
 	github.com/jackc/pgconn v1.14.1
 	github.com/jackc/pgpassfile v1.0.0 // indirect

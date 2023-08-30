@@ -7,7 +7,6 @@ import (
 )
 
 type UserRepo interface {
-	NewUser(user entity.User) (int, error)
 	UserSegments(userID int) ([]entity.SlugWithExpiredDate, error)
 	AddUserSegments(userID int, added []entity.SlugWithExpiredDate) error
 	RemoveUserSegments(userID int, removed []string) error
@@ -21,17 +20,6 @@ type UserUsecase struct {
 
 func NewUserUsecase(r UserRepo) *UserUsecase {
 	return &UserUsecase{r}
-}
-
-func (uc *UserUsecase) NewUser(user entity.User) (int, error) {
-	op := "usecase.user.New"
-
-	id, err := uc.r.NewUser(user)
-	if err != nil {
-		return 0, fmt.Errorf("%s: %w", op, err)
-	}
-
-	return id, nil
 }
 
 func (uc *UserUsecase) RemoveUserSegments(userID int, removed []string) error {
@@ -55,7 +43,7 @@ func (uc *UserUsecase) AddUserSegments(userID int, added []entity.SlugWithExpire
 }
 
 func (uc *UserUsecase) UserSegments(userID int) ([]entity.SlugWithExpiredDate, error) {
-	op := "usecase.user.AddUserSegments"
+	op := "usecase.user.UserSegments"
 
 	segments, err := uc.r.UserSegments(userID)
 	if err != nil {
@@ -66,7 +54,7 @@ func (uc *UserUsecase) UserSegments(userID int) ([]entity.SlugWithExpiredDate, e
 }
 
 func (uc *UserUsecase) UsersHistoryInCSVByDate(year int, month int) (string, error) {
-	op := "usecase.user.UserSegmentsHistoryByDate"
+	op := "usecase.user.UsersHistoryInCSVByDate"
 
 	history, err := uc.r.UsersHistoryInByDate(year, month)
 	if err != nil {

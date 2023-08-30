@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"experiment.io/internal/entity"
-	"experiment.io/pkg/hasher"
 	"experiment.io/pkg/logger"
 	"github.com/gin-gonic/gin"
 )
@@ -18,7 +17,6 @@ type userHandler struct {
 }
 
 type UserUsecase interface {
-	NewUser(user entity.User) (int, error)
 	UserSegments(userID int) ([]entity.SlugWithExpiredDate, error)
 	AddUserSegments(userID int, added []entity.SlugWithExpiredDate) error
 	RemoveUserSegments(userID int, removed []string) error
@@ -27,56 +25,12 @@ type UserUsecase interface {
 
 func NewUserHandler(route *gin.RouterGroup, l *logger.Logger, uc UserUsecase) {
 	h := &userHandler{uc, l}
-
 	{
-		route.POST("/users", h.newUser)
 		route.GET("/users/segments/history", h.usersHistoryInCSVByDate)
 		route.PATCH("/users/:user_id/segments", h.editUserSegments)
 		route.GET("/users/:user_id/segments", h.userSegments)
 	}
-}
 
-type requestNewUser struct {
-	Name string `json:"name" binding:"required,max=100"`
-	Pass string `json:"pass" binding:"required,max=50"`
-}
-
-type responseNewUser struct {
-	ID int `json:"id"`
-}
-
-func (h *userHandler) newUser(c *gin.Context) {
-	var req requestNewUser
-	if err := c.BindJSON(&req); err != nil {
-		h.l.Error(err)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"msg:": err.Error()})
-		return
-	}
-
-	hashedPass, err := hasher.HashString(req.Pass)
-	if err != nil {
-		h.l.Error(err)
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"msg:": err.Error()})
-		return
-	}
-
-	id, err := h.uc.NewUser(entity.User{
-		Name:     req.Name,
-		Password: hashedPass,
-	})
-	if err != nil {
-		h.l.Error(err)
-		if errors.Is(err, entity.ErrUserAlreadyExist) {
-			c.AbortWithStatusJSON(http.StatusConflict, gin.H{"msg:": entity.ErrUserAlreadyExist.Error()})
-			return
-		}
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
-	c.JSON(http.StatusCreated, responseNewUser{
-		ID: id,
-	})
 }
 
 // added segments will be ignored after ttl expires

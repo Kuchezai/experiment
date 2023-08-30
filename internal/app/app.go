@@ -7,8 +7,10 @@ import (
 
 	"experiment.io/config"
 	"experiment.io/internal/controller/http"
+	"experiment.io/internal/controller/http/handlers/middleware"
 	repo "experiment.io/internal/repo/pg"
 	"experiment.io/internal/usecase"
+	"experiment.io/pkg/hasher"
 	logger "experiment.io/pkg/logger"
 	ginLogger "experiment.io/pkg/logger/gin-logger"
 	postgres "experiment.io/pkg/storage/pg"
@@ -26,24 +28,33 @@ func Run(cfg *config.Config) {
 	if err != nil {
 		log.Fatal("unable to connect pg")
 	}
-	dirToStorageCSV := "./history"
+
 	// Repository
 	segmentRepo := repo.NewSegmentRepository(pg)
+
+	dirToStorageCSV := "./history"
 	userRepo, err := repo.NewUserRepository(pg, dirToStorageCSV)
 	if err != nil {
 		log.Fatal("unable to create user repository")
 	}
+	
+	//
 
 	// Usecase
 	segmentUC := usecase.NewSegmentUsecase(segmentRepo)
 	userUC := usecase.NewUserUsecase(userRepo)
+	
+	secretKey := cfg.HTTP.JWTSecret
+	hasher := hasher.New()
+	authUC := usecase.NewAuthUsecase(userRepo, hasher, secretKey)
 
-	// Create and start http server
+	// Create http server
 	l := logger.New()
 	g := gin.New()
 	g.Use(gin.Recovery())
 	g.Use(ginLogger.LoggingMiddleware(l))
-	http.SetupRouter(g, l, segmentUC, userUC)
+
+	http.SetupRouter(g, l, segmentUC, userUC, authUC, middleware.Authorized(secretKey))
 	srv, err := http.NewServer(g, cfg.HTTP)
 	if err != nil {
 		log.Fatal(err)

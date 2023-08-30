@@ -11,6 +11,7 @@ import (
 
 	"experiment.io/internal/entity"
 	"experiment.io/pkg/storage/pg"
+	pgx "github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/lib/pq"
 )
@@ -55,9 +56,29 @@ func (r *UserRepository) NewUser(u entity.User) (int, error) {
 	return id, nil
 }
 
+func (r *UserRepository) Password(username string) (string, error) {
+	op := "repo.pg.user.Password"
+
+	query := `
+	SELECT encrypted_pwd FROM users
+	WHERE name = $1
+	`
+	var password string
+	err := r.db.QueryRow(context.TODO(), query, username).Scan(&password)
+
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return "", fmt.Errorf("%s: %w", op, entity.ErrInvalidNameOrPass)
+		}
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
+
+	return password, nil
+}
+
 // TODO : Remove the loop and enter everything in one big request
 
-// Adds expire time only if ttl > 0, otherwise make it indefinite
+// Adds expire time only if ttl > 0, otherwise make it infinity
 func (r *UserRepository) AddUserSegments(userID int, added []entity.SlugWithExpiredDate) error {
 	op := "repo.pg.user.AddUserSegments"
 
