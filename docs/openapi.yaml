@@ -3,9 +3,8 @@ info:
   title: experiment API
   version: "1.0.0"
 servers:
-  - url: http://experiment.io/api/v1
+  - url: http://experiment.io
   
-    
 components:
 
   schemas:
@@ -32,7 +31,7 @@ components:
       bearerFormat: JWT
       
 paths:
-  /registration:
+  /api/v1/registration:
     post:
       summary: Register a new user
       tags:
@@ -69,7 +68,7 @@ paths:
         '500':
           description: Internal Server Error
           
-  /login:
+  /api/v1/login:
     post:
       summary: Log in to the system
       tags:
@@ -105,7 +104,7 @@ paths:
           description: Unauthorized - Wrong name or pass
         '500':
           description: Internal Server Error
-  /segments:
+  /api/v1/segments:
     post:
       summary: Create new segment
       tags:
@@ -128,7 +127,7 @@ paths:
           description: Conflict - A segment with this slug already exists
         '500':
           description: Internal Server Error
-  /segments/auto-assign:
+  /api/v1/segments/auto-assign:
     post:
       summary: Create new segment and automatically assign users to segments, return assigned users
       tags:
@@ -168,7 +167,7 @@ paths:
           description: Conflict - A segment with this slug already exists
         '500':
           description: Internal Server Error
-  /segments/{slug}:
+  /api/v1/segments/{slug}:
     delete:
       summary: Delete segment
       tags:
@@ -186,7 +185,7 @@ paths:
           description: Not Found
         '500':
           description: Internal Server Error
-  /users/{user_id}/segments:
+  /api/v1/users/{user_id}/segments:
     get:
       summary: Get user segments
       tags:
@@ -212,8 +211,8 @@ paths:
                     expired_date:
                       type: string
                       format: date-time
-        '404':
-          description: User not found
+        '400':
+          description: Invalid User ID
         '500':
           description: Internal Server Error
     patch:
@@ -262,7 +261,7 @@ paths:
         '500':
           description: Internal Server Error
           
-  /users/segments/history:
+  /api/v1/users/segments/history:
     post:
       summary: Create the history of users attached to segments for a period of time
       tags:
