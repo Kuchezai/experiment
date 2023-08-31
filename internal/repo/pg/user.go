@@ -103,6 +103,7 @@ func (r *UserRepository) AddUserSegments(userID int, added []entity.SlugWithExpi
 	if err != nil {
 		return fmt.Errorf("%s: %w", op, err)
 	}
+
 	return nil
 }
 
@@ -136,7 +137,6 @@ func (r *UserRepository) RemoveUserSegments(userID int, removed []string) error 
 	}
 
 	return nil
-
 }
 
 func (r *UserRepository) UserSegments(userID int) ([]entity.SlugWithExpiredDate, error) {
@@ -174,11 +174,10 @@ func (r *UserRepository) UserSegments(userID int) ([]entity.SlugWithExpiredDate,
 	}
 
 	return segments, nil
-
 }
 
 func (r *UserRepository) UsersHistoryInByDate(year int, month int) ([]entity.UserSegmentsHistory, error) {
-	op := "repo.pg.user.UsersSegmentsHistoryByDate"
+	op := "repo.pg.user.UsersHistoryInByDate"
 
 	firstDay := time.Date(year, time.Month(month), 1, 0, 0, 0, 0, time.UTC)
 	lastDay := firstDay.AddDate(0, 1, 0)
@@ -216,12 +215,11 @@ func (r *UserRepository) UsersHistoryInByDate(year int, month int) ([]entity.Use
 }
 
 func (r *UserRepository) WriteHistoryToCSV(history []entity.UserSegmentsHistory, year int, month int) (string, error) {
-	op := "usecase.user.UserSegmentsHistory"
+	op := "usecase.user.WriteHistoryToCSV"
 	filePath := fmt.Sprintf("%s/user_segments_history-%d-%d.csv", r.dirToStoreCSV, year, month)
 	file, err := os.Create(filePath)
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", op, err)
-
 	}
 	defer file.Close()
 
@@ -229,7 +227,9 @@ func (r *UserRepository) WriteHistoryToCSV(history []entity.UserSegmentsHistory,
 	defer writer.Flush()
 
 	header := []string{"operation_id", "user_id", "segment_slug", "is_added", "date"}
-	writer.Write(header)
+	if err = writer.Write(header); err != nil {
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
 
 	var rows [][]string
 	for _, h := range history {
@@ -237,7 +237,9 @@ func (r *UserRepository) WriteHistoryToCSV(history []entity.UserSegmentsHistory,
 		rows = append(rows, row)
 	}
 	fmt.Println(rows)
-	writer.WriteAll(rows)
+	if err = writer.WriteAll(rows); err != nil {
+		return "", fmt.Errorf("%s: %w", op, err)
+	}
 
 	return filePath, nil
 }

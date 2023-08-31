@@ -30,7 +30,6 @@ func NewUserHandler(route *gin.RouterGroup, l *logger.Logger, uc UserUsecase) {
 		route.PATCH("/users/:user_id/segments", h.editUserSegments)
 		route.GET("/users/:user_id/segments", h.userSegments)
 	}
-
 }
 
 // added segments will be ignored after ttl expires
@@ -66,6 +65,7 @@ func (h *userHandler) editUserSegments(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"msg:": entity.ErrInvalidAddedSegment.Error()})
 		return
 	}
+
 	// check whether added and removed segments intersect
 	added := make([]string, len(req.AddSegments))
 	for i := range req.AddSegments {
@@ -119,7 +119,6 @@ func (h *userHandler) editUserSegments(c *gin.Context) {
 	}
 
 	c.Status(http.StatusOK)
-
 }
 
 type responseUserSegments struct {
@@ -154,7 +153,6 @@ func (h *userHandler) userSegments(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, resp)
-
 }
 
 type requestHistoryInCSVByDate struct {
@@ -167,7 +165,6 @@ type responseHistoryInCSVByDate struct {
 }
 
 func (h *userHandler) createUsersHistoryInCSVByDate(c *gin.Context) {
-
 	var req requestHistoryInCSVByDate
 	if err := c.ShouldBindJSON(&req); err != nil {
 		h.l.Error(err)
@@ -185,5 +182,4 @@ func (h *userHandler) createUsersHistoryInCSVByDate(c *gin.Context) {
 	c.JSON(http.StatusCreated, responseHistoryInCSVByDate{
 		Link: path,
 	})
-
 }
