@@ -212,7 +212,7 @@ func TestUserSegments(t *testing.T) {
 			name:           "Invalid user id",
 			userID:         "1invalid",
 			errUsecase:     nil,
-			expectedStatus: http.StatusNotFound,
+			expectedStatus: http.StatusBadRequest,
 		},
 	}
 
