@@ -44,3 +44,13 @@ services:
     restart: on-failure
     command: 
       [ "-path", "/migrations", "-database",  "postgres://${DB_USER}:${DB_PASSWORD}@postgres:5432/${DB_NAME}?sslmode=${DB_SSLMODE}", "up" ]
+
+  swagger-ui:
+    image: swaggerapi/swagger-ui
+    container_name: swagger_ui_container
+    ports:
+      - "8888:8080"
+    volumes:
+      - ./docs:/usr/share/nginx/html/doc
+    environment:
+      API_URL: doc/openapi.yaml
