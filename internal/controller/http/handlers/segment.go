@@ -25,7 +25,7 @@ func NewSegmentHandler(route *gin.RouterGroup, l *logger.Logger, uc SegmentUseca
 	{
 		route.DELETE("/segments/:slug", h.deleteSegment)
 		route.POST("/segments", h.newSegment)
-		route.POST("/segments/autoassign", h.newSegmentWithAutoAssign)
+		route.POST("/segments/auto-assign", h.newSegmentWithAutoAssign)
 	}
 }
 
