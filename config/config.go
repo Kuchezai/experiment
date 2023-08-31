@@ -16,7 +16,7 @@ type (
 		Address     string        `yaml:"address"`
 		Timeout     time.Duration `yaml:"timeout"`
 		IdleTimeout time.Duration `yaml:"idle_timeout"`
-		JWTSecret   string        `yaml:"jwt_secret"`
+		JWTSecret   string        `env:"JWT_SECRET"`
 	}
 	DB struct {
 		Host         string        `env:"DB_HOST"`
