@@ -1,0 +1,331 @@
+openapi: "3.0.0"
+info:
+  title: experiment API
+  version: "1.0.0"
+servers:
+  - url: http://experiment.io/api/v1
+  
+    
+components:
+
+  schemas:
+    segment:
+      type: object
+      properties:
+        slug:
+          type: string
+          
+    user:
+      type: object
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        pass:
+          type: string
+    
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      
+paths:
+  /registration:
+    post:
+      summary: Register a new user
+      tags:
+        - auth
+      requestBody:
+        description: User registration details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                pass:
+                  type: string
+              required:
+                - name
+                - surname
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+        '400':
+          description: Bad request - The name and pass are required as a string
+        '409':
+          description: Conflict - A user with this name already exists
+        '500':
+          description: Internal Server Error
+          
+  /login:
+    post:
+      summary: Log in to the system
+      tags:
+        - auth
+      requestBody:
+        description: User login credentials
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                pass:
+                  type: string
+              required:
+                - name
+                - surname
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '400':
+          description: Bad request - The name and pass are required as a string
+        '401':
+          description: Unauthorized - Wrong name or pass
+        '500':
+          description: Internal Server Error
+  /segments:
+    post:
+      summary: Create new segment
+      tags:
+        - segments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                slug:
+                  type: string
+      responses:
+        '201':
+          description: Created
+        '400':
+          description: Bad request - The slug are required as a string
+        '409':
+          description: Conflict - A segment with this slug already exists
+        '500':
+          description: Internal Server Error
+  /segments/auto-assign:
+    post:
+      summary: Create new segment and automatically assign users to segments, return assigned users
+      tags:
+        - segments
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                slug:
+                  type: string
+                percent:
+                  type: integer
+                  minimum: 0
+                  maximum: 100
+                    
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ids:
+                    type: array
+                    items:
+                      type: integer
+                    example:
+                      - 1
+                      - 2
+        '400':
+          description: Bad request - The slug are required as a string
+        '409':
+          description: Conflict - A segment with this slug already exists
+        '500':
+          description: Internal Server Error
+  /segments/{slug}:
+    delete:
+      summary: Delete segment
+      tags:
+        - segments
+      parameters:
+        - name: slug
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deleted
+        '404':
+          description: Not Found
+        '500':
+          description: Internal Server Error
+  /users/{user_id}/segments:
+    get:
+      summary: Get user segments
+      tags:
+        - users
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    slug:
+                      type: string
+                    expired_date:
+                      type: string
+                      format: date-time
+        '404':
+          description: User not found
+        '500':
+          description: Internal Server Error
+    patch:
+      summary: Update user segments
+      tags:
+        - users
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                add_segments:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      slug: 
+                        type: string
+                      ttl: 
+                        type: integer
+                        minimum: 0
+                        maximum: 366
+                remove_segments:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: OK
+        '400':
+          description: Bad Request - Invalid JSON || 366 < TTL < 0 || removed and added segments intersects
+        '404':
+          description: User not found or the removed segment was not found by the user
+        '409':
+          description: The added segments have already been added
+        '422':
+          description: The added segment not found
+        '500':
+          description: Internal Server Error
+          
+  /users/segments/history:
+    post:
+      summary: Create the history of users attached to segments for a period of time
+      tags:
+        - history
+      requestBody:
+        description: User registration details
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                year:
+                  type: integer
+                  minimum: 2007
+                  maximum: 2100
+                month:
+                  type: integer
+                  minimum: 1
+                  maximum: 12
+              required:
+                - name
+                - surname
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  link: 
+                    type: string
+                    example:
+                      history/user_segments_history-2007-12.csv
+        '400':
+          description: Bad Request - Invalid JSON || 2100 < year < 2007 || 12 < month < 1
+        '500':
+          description: Internal Server Error
+  /history/{path}:
+    get:
+      security:
+        - bearerAuth: []
+      summary: Get the history of users attached to segments for a period of time in csv format
+      tags:
+        - history
+      parameters:
+        - name: path
+          in: path
+          required: true
+          schema:
+            type: string
+          example:
+            history/user_segments_history-2007-12.csv
+      responses:
+        '200':
+          description: OK
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+                example:
+                  operation_id,user_id,segment_slug,is_added,date
+        '404':
+          description: Not found
