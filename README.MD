@@ -1,4 +1,4 @@
-# Сервис динамического сегментирования пользователей
+# Dynamic User Segmentation service
 ## Description
 Сервис, хранящий пользователя и сегменты, в которых он состоит. Сервис позволяет создавать, удалять и добавлять сегменты, а также присваивать их пользователям.
 
@@ -25,7 +25,7 @@
 
 
 ## Service starting
-1. Переименуйте `.env.example ` в `.env`, поменяйте переменные окружения при необходимости.
+1. Переименуйте `.env.example ` в `.env`, поменяйте переменные окружения при необходимости
 2. Запустите контейнеры командой ``
 make compose-up
 ``
@@ -34,7 +34,7 @@ make compose-up
 
 ###  Регистрация пользователя
 
-`Request:`
+Request:
 
 ``` 
 curl --location 'http://localhost:8080/api/v1/registration' \
@@ -44,7 +44,7 @@ curl --location 'http://localhost:8080/api/v1/registration' \
     "pass": "superpass"
 }'
 ```
-`Response:`
+Response:
 
 ```json 
 {
@@ -54,7 +54,7 @@ curl --location 'http://localhost:8080/api/v1/registration' \
 
 ###  Аутентификация пользователя
 
-`Request:`
+Request:
 
 ``` 
 curl --location 'http://localhost:8080/api/v1/login' \
@@ -65,7 +65,7 @@ curl --location 'http://localhost:8080/api/v1/login' \
 }'
 ```
 
-`Response:`
+Response:
 
 ```json 
 {
@@ -75,7 +75,7 @@ curl --location 'http://localhost:8080/api/v1/login' \
 
 ### Создание сегмента
 
-`Request:`
+Request:
 
 ``` 
 curl --location 'http://localhost:8080/api/v1/segments' \
@@ -85,7 +85,7 @@ curl --location 'http://localhost:8080/api/v1/segments' \
 }'
 ```
 
-`Response:`
+Response:
 
 ```
 201 Created
@@ -93,7 +93,7 @@ curl --location 'http://localhost:8080/api/v1/segments' \
 
 ###  Создание сегмента с автоматическим присвоением
 
-`Request:`
+Request:
 
 ``` 
 curl --location 'http://localhost:8080/api/v1/segments/auto-assign' \
@@ -104,7 +104,7 @@ curl --location 'http://localhost:8080/api/v1/segments/auto-assign' \
 }'
 ```
 
-`Response:`
+Response:
 
 ```json 
 {
@@ -114,14 +114,14 @@ curl --location 'http://localhost:8080/api/v1/segments/auto-assign' \
 
 ### Удаление сегмента
 
-`Request:`
+Request:
 
 ``` 
 curl --location --request DELETE 'http://localhost:8080/api/v1/segments/AVITO_DISCOUNT_30' \
 --data ''
 ```
 
-`Response:`
+Response:
 
 ```
 200 OK
@@ -129,14 +129,14 @@ curl --location --request DELETE 'http://localhost:8080/api/v1/segments/AVITO_DI
 
 ### Получение сегментов пользователя
 
-`Request:`
+Request:
 
 ``` 
 curl --location 'http://localhost:8080/api/v1/users/1/segments' \
 --data ''
 ```
 
-`Response:`
+Response:
 
 ```json
 [
@@ -153,7 +153,7 @@ curl --location 'http://localhost:8080/api/v1/users/1/segments' \
 
 ### Редактирование сегментов пользователя
 
-`Request:`
+Request:
 
 ``` 
 curl --location --request PATCH 'http://localhost:8080/api/v1/users/1/segments' \
@@ -171,7 +171,7 @@ curl --location --request PATCH 'http://localhost:8080/api/v1/users/1/segments' 
 }'
 ```
 
-`Response:`
+Response:
 
 ```
 200 OK
@@ -179,7 +179,7 @@ curl --location --request PATCH 'http://localhost:8080/api/v1/users/1/segments' 
 
 ### Создать CSV файл с историей добавления/выбывания сегментов
 
-`Request:`
+Request:
 
 ``` 
 curl --location 'http://localhost:8080/api/v1/users/segments/history' \
@@ -190,7 +190,7 @@ curl --location 'http://localhost:8080/api/v1/users/segments/history' \
 }'
 ```
 
-`Response:`
+Response:
 
 ```json
 {
@@ -199,11 +199,11 @@ curl --location 'http://localhost:8080/api/v1/users/segments/history' \
 ```
 
 ### Скачать CSV файл с историей добавления/выбывания сегментов
-```diff
-! Это защищенная ручка, чтобы скачать файл нужно указать токен, получаемый при аутентификации
-```
 
-`Request:`
+⚠️  Это защищенная ручка, чтобы скачать файл нужно указать токен, получаемый при аутентификации
+
+
+Request:
 
 
 
@@ -212,7 +212,7 @@ curl --location 'http://localhost:8080/history/user_segments_history-2023-8.csv'
 --header 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJuYW1lIjoidGVzdCJ9.Poy32jrZkt3gvJL6uzfE4buxhbrNjTwvTZGPoQntvgk'
 ```
 
-`Response*:`
+Response*:
 
 ```
     operation_id,user_id,segment_slug,is_added,date
@@ -224,4 +224,4 @@ curl --location 'http://localhost:8080/history/user_segments_history-2023-8.csv'
 6,9,AVITO_DISCOUNT_30,false,2023-08-31T17:49:16Z
 7,10,AVITO_DISCOUNT_30,false,2023-08-31T17:49:16Z
 ```
-`*При запросе из браузера будет скачен .csv файл`
+*При запросе из браузера будет скачен .csv файл
