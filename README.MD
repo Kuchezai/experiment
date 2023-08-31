@@ -24,7 +24,7 @@
 ## Service starting
 1. Переименуйте `.env.example ` в `.env`, поменяйте переменные окружения при необходимости
 2. Запустите контейнеры командой ``
-make compose-up
+make compose_up
 ``
 
 ## Requests
