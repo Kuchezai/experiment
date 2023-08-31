@@ -131,7 +131,7 @@ func (h *userHandler) userSegments(c *gin.Context) {
 	id, err := strconv.Atoi(userID)
 	if err != nil {
 		h.l.Error(err)
-		c.AbortWithStatus(http.StatusNotFound)
+		c.AbortWithStatus(http.StatusBadRequest)
 		return
 	}
 
