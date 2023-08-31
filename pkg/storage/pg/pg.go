@@ -2,6 +2,7 @@ package pg
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -50,4 +51,21 @@ func New(url string, opts ...Option) (*Postgres, error) {
 	}
 
 	return pg, nil
+}
+
+func (p *Postgres) CloseConnections(ctx context.Context) error {
+	op := "storage.pg.CloseConnections"
+	
+	done := make(chan struct{})
+	go func() {
+		p.Close()
+		done <- struct{}{}
+	}()
+
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return fmt.Errorf("%s, %w", op, errors.New(("time expired")))
+	}
 }

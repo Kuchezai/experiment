@@ -1,9 +1,11 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"net/url"
+	"time"
 
 	"experiment.io/config"
 	"experiment.io/internal/controller/http"
@@ -17,7 +19,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func Run(cfg *config.Config) {
+func Run(ctx context.Context, cfg *config.Config) {
 	// PostgreSQL
 	pg, err := postgres.New(
 		generateDBURL(&cfg.DB, "postgres"),
@@ -37,13 +39,11 @@ func Run(cfg *config.Config) {
 	if err != nil {
 		log.Fatal("unable to create user repository")
 	}
-	
-	//
 
 	// Usecase
 	segmentUC := usecase.NewSegmentUsecase(segmentRepo)
 	userUC := usecase.NewUserUsecase(userRepo)
-	
+
 	secretKey := cfg.HTTP.JWTSecret
 	hasher := hasher.New()
 	authUC := usecase.NewAuthUsecase(userRepo, hasher, secretKey)
@@ -59,10 +59,29 @@ func Run(cfg *config.Config) {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := srv.ListenAndServe(); err != nil {
-		log.Fatal(err)
+
+	// Start http server
+	go func() {
+		if err := srv.ListenAndServe(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+
+	// Graceful shutdown
+	<-ctx.Done()
+	ctxShutDown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := pg.CloseConnections(ctxShutDown); err != nil {
+		log.Fatal("Server Shutdown:", err)
 	}
 
+	if err := srv.Shutdown(ctxShutDown); err != nil {
+		log.Fatal("Server Shutdown:", err)
+	}
+
+	<-ctxShutDown.Done()
 }
 
 func generateDBURL(config *config.DB, scheme string) string {
