@@ -6,10 +6,9 @@ import (
 
 	"experiment.io/internal/entity"
 	"experiment.io/internal/mocks"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 )
-
-
 
 func TestRemoveUserSegments(t *testing.T) {
 	r := new(mocks.UserRepo)
@@ -171,6 +170,56 @@ func TestUserSegments(t *testing.T) {
 				require.Equal(t, tc.repoSegments, segments)
 			}
 
+			mockCall.Unset()
+		})
+	}
+}
+
+func TestUsersHistoryInCSVByDate(t *testing.T) {
+	r := new(mocks.UserRepo)
+	uc := NewUserUsecase(r)
+
+	testCases := []struct {
+		name        string
+		year        int
+		month       int
+		fetchErr    error
+		writeErr    error
+		expectedErr error
+	}{
+		{
+			name:        "Success",
+			year:        2023,
+			month:       8,
+			fetchErr:    nil,
+			writeErr:    nil,
+			expectedErr: nil,
+		},
+		{
+			name:        "Error fetching history",
+			year:        2023,
+			month:       8,
+			fetchErr:    entity.ErrInternalServer,
+			writeErr:    nil,
+			expectedErr: entity.ErrInternalServer,
+		},
+		{
+			name:        "Error writing CSV",
+			year:        2023,
+			month:       8,
+			fetchErr:    entity.ErrInternalServer,
+			writeErr:    entity.ErrInternalServer,
+			expectedErr: entity.ErrInternalServer,
+		},
+	}
+
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCall := r.On("UsersHistoryInByDate", tc.year, tc.month).Return([]entity.UserSegmentsHistory{}, tc.fetchErr)
+			mockCall.On("WriteHistoryToCSV", mock.Anything, mock.Anything, mock.Anything).Return("", tc.writeErr)
+
+			_, err := uc.UsersHistoryInCSVByDate(tc.year, tc.month)
+			require.ErrorIs(t, err, tc.expectedErr)
 			mockCall.Unset()
 		})
 	}

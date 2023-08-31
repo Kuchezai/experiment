@@ -61,3 +61,42 @@ func TestRegistration(t *testing.T) {
 	}
 
 }
+
+// only one test because i can't test hasher
+func TestLogin(t *testing.T) {
+	r := new(mocks.AuthRepo)
+	hasher := hasher.New()
+	secretKey := "secret"
+	uc := NewAuthUsecase(r, hasher, secretKey)
+
+	testCase := []struct {
+		name        string
+		user        entity.User
+		repoVal     string
+		repoErr     error
+		expectedErr error
+	}{
+		{
+			name: "Already registered",
+			user: entity.User{
+				Name:     "name",
+				Password: "pass",
+			},
+			repoVal:     "token",
+			repoErr:     entity.ErrInvalidNameOrPass,
+			expectedErr: entity.ErrInvalidNameOrPass,
+		},
+	}
+
+	for _, tc := range testCase {
+		t.Run(tc.name, func(t *testing.T) {
+			mockCall := r.On("Password", mock.Anything).Return(tc.repoVal, tc.repoErr)
+
+			_, err := uc.Login(tc.user)
+			require.ErrorIs(t, err, tc.expectedErr)
+
+			mockCall.Unset()
+		})
+	}
+
+}

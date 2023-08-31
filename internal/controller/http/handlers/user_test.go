@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -178,6 +179,128 @@ func TestEditUserSegments(t *testing.T) {
 		mockContext.Request.Header.Set("Accept", "application/json")
 
 		handler.editUserSegments(mockContext)
+		require.Equal(t, tc.expectedStatus, mockContext.Writer.Status())
+	}
+}
+
+func TestUserSegments(t *testing.T) {
+	testCase := []struct {
+		name           string
+		userID         string
+		errUsecase     error
+		expectedStatus int
+	}{
+		{
+			name:           "Success test",
+			userID:         "1",
+			errUsecase:     nil,
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name:           "Non-existent user",
+			userID:         "1",
+			errUsecase:     entity.ErrUserNotFound,
+			expectedStatus: http.StatusNotFound,
+		},
+		{
+			name:           "Unexpected error",
+			userID:         "1",
+			errUsecase:     errors.New("unexpected error"),
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
+			name:           "Invalid user id",
+			userID:         "1invalid",
+			errUsecase:     nil,
+			expectedStatus: http.StatusNotFound,
+		},
+	}
+
+	for _, tc := range testCase {
+		logger := logger.New()
+		mockUsecase := new(mocks.UserUsecase)
+		mockContext := newMockGinContext()
+
+		handler := userHandler{
+			uc: mockUsecase,
+			l:  logger,
+		}
+		mockUsecase.On("UserSegments", mock.Anything).Return([]entity.SlugWithExpiredDate{{}}, tc.errUsecase)
+
+		mockContext.Params = []gin.Param{{Key: "user_id", Value: tc.userID}}
+		mockContext.Request = httptest.NewRequest("GET", "/users/"+tc.userID+"/segments", nil)
+		mockContext.Request.Header.Set("Accept", "application/json")
+
+		handler.userSegments(mockContext)
+		require.Equal(t, tc.expectedStatus, mockContext.Writer.Status())
+	}
+}
+
+func TestUsersHistoryInCSVByDate(t *testing.T) {
+	testCase := []struct {
+		name           string
+		reqJSON        string
+		errUsecase     error
+		expectedStatus int
+	}{
+		{
+			name: "Success test",
+			reqJSON: `
+				{
+					"year": 2023,
+					"month": 8
+				}
+				`,
+			errUsecase:     nil,
+			expectedStatus: http.StatusCreated,
+		},
+		{
+			name: "Usecase error",
+			reqJSON: `
+				{
+					"year": 2023,
+					"month": 8
+				}`,
+			errUsecase:     errors.New("unexpected error"),
+			expectedStatus: http.StatusInternalServerError,
+		},
+		{
+			name: "Invalid json",
+			reqJSON: `
+				{
+					"year": 2023,
+					"mon
+				}`,
+			errUsecase:     nil,
+			expectedStatus: http.StatusBadRequest,
+		},
+		{
+			name: "Invalid month or year",
+			reqJSON: `
+				{
+					"year": 1999,
+					"month": 13
+				}`,
+			errUsecase:     nil,
+			expectedStatus: http.StatusBadRequest,
+		},
+	}
+
+	for _, tc := range testCase {
+		logger := logger.New()
+		mockUsecase := new(mocks.UserUsecase)
+		mockContext := newMockGinContext()
+
+		handler := userHandler{
+			uc: mockUsecase,
+			l:  logger,
+		}
+		mockUsecase.On("UsersHistoryInCSVByDate", mock.Anything, mock.Anything).Return("link", tc.errUsecase)
+
+		mockContext.Request = httptest.NewRequest("POST", "/users/segments/history", strings.NewReader(tc.reqJSON))
+		mockContext.Request.Header.Set("Accept", "application/json")
+
+		handler.createUsersHistoryInCSVByDate(mockContext)
 		require.Equal(t, tc.expectedStatus, mockContext.Writer.Status())
 	}
 }
