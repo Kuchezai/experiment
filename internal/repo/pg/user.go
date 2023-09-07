@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"experiment.io/internal/entity"
-	"experiment.io/pkg/storage/pg"
 	pgx "github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/lib/pq"
@@ -18,12 +17,19 @@ import (
 
 var MaxTime = time.Date(9999, time.December, 31, 23, 59, 59, 999999999, time.UTC)
 
+type UserPGX interface {
+	Begin(ctx context.Context) (pgx.Tx, error)
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
+	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
+}
+
 type UserRepository struct {
-	db            *pg.Postgres
+	db            UserPGX
 	dirToStoreCSV string
 }
 
-func NewUserRepository(db *pg.Postgres, dirToStoreCSV string) (*UserRepository, error) {
+func NewUserRepository(db UserPGX, dirToStoreCSV string) (*UserRepository, error) {
 	if _, err := os.Stat(dirToStoreCSV); errors.Is(err, os.ErrNotExist) {
 		err := os.Mkdir(dirToStoreCSV, os.ModePerm)
 		if err != nil {

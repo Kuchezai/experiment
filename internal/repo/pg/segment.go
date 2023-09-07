@@ -6,15 +6,21 @@ import (
 	"fmt"
 
 	"experiment.io/internal/entity"
-	"experiment.io/pkg/storage/pg"
+	pgx "github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
-type SegmentRepository struct {
-	db *pg.Postgres
+type SegmentPGX interface {
+	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
+	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
 }
 
-func NewSegmentRepository(db *pg.Postgres) *SegmentRepository {
+type SegmentRepository struct {
+	db SegmentPGX
+}
+
+
+func NewSegmentRepository(db SegmentPGX) *SegmentRepository {
 	return &SegmentRepository{db}
 }
 
