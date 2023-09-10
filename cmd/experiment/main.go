@@ -1,10 +1,7 @@
 package main
 
 import (
-	"context"
 	"log"
-	"os/signal"
-	"syscall"
 
 	"experiment.io/config"
 	"experiment.io/internal/app"
@@ -22,9 +19,5 @@ func main() {
 		log.Fatalf("Config error: %s", err)
 	}
 
-
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer cancel()
-
-	app.Run(ctx, cfg)
+	app.Run(cfg)
 }

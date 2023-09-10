@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net/url"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"experiment.io/config"
@@ -19,7 +22,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func Run(ctx context.Context, cfg *config.Config) {
+func Run(cfg *config.Config) {
 	// PostgreSQL
 	pg, err := postgres.New(
 		generateDBURL(&cfg.DB, "postgres"),
@@ -67,21 +70,22 @@ func Run(ctx context.Context, cfg *config.Config) {
 		}
 	}()
 
-
 	// Graceful shutdown
-	<-ctx.Done()
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	<-quit
 	ctxShutDown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	if err := pg.CloseConnections(ctxShutDown); err != nil {
-		log.Fatal("Server Shutdown:", err)
+		log.Fatal("pg shutdown:", err)
 	}
-
+	
 	if err := srv.Shutdown(ctxShutDown); err != nil {
-		log.Fatal("Server Shutdown:", err)
+		log.Fatal("server shutdown:", err)
 	}
-
 	<-ctxShutDown.Done()
+	log.Println("timeout of 5 seconds.")
 }
 
 func generateDBURL(config *config.DB, scheme string) string {
